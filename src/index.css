@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@100..900&family=Cinzel:wght@400..900&family=Poppins:wght@100..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", "Cinzel", serif;
+  
+  --color-luxury-wine: #520D0D;
+  --color-luxury-black: #1A1A1A;
+  --color-luxury-gold: #E0B973;
+  --color-luxury-white: #F5F5F5;
+  --color-luxury-rose: #C08081;
+
+  --color-background: var(--color-luxury-wine);
+  --color-foreground: var(--color-luxury-white);
+  --color-primary: var(--color-luxury-gold);
+  --color-primary-foreground: var(--color-luxury-black);
+  --color-secondary: var(--color-luxury-black);
+  --color-secondary-foreground: var(--color-luxury-white);
+  --color-accent: var(--color-luxury-gold);
+  --color-accent-foreground: var(--color-luxury-black);
+  --color-muted: var(--color-luxury-black);
+  --color-muted-foreground: #A1A1AA;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-input: rgba(255, 255, 255, 0.1);
+  --color-ring: var(--color-luxury-gold);
+}
+
+@layer base {
+  body {
+    @apply bg-luxury-wine text-luxury-white font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+
+.glass-effect {
+  @apply bg-white/5 backdrop-blur-md border border-white/10;
+}
+
+.gold-glow {
+  @apply shadow-[0_0_15px_rgba(224,185,115,0.3)];
+}
+
+.luxury-card {
+  @apply bg-luxury-black/40 backdrop-blur-sm border border-white/5 rounded-xl overflow-hidden transition-all duration-300 hover:border-luxury-gold/30 hover:shadow-xl;
+}
+
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";

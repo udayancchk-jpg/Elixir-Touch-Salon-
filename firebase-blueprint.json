@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "Appointment": {
+      "title": "Appointment",
+      "description": "A booking for a salon or spa service",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "description": "Client's full name" },
+        "phoneNumber": { "type": "string", "description": "Client's contact number" },
+        "email": { "type": "string", "format": "email", "description": "Client's email address" },
+        "service": { "type": "string", "description": "Selected service name" },
+        "date": { "type": "string", "format": "date", "description": "Appointment date (ISO string)" },
+        "timeSlot": { "type": "string", "description": "Selected time slot" },
+        "notes": { "type": "string", "description": "Special requests or notes" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"], "description": "Status of the appointment" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the appointment was created" }
+      },
+      "required": ["fullName", "phoneNumber", "service", "date", "timeSlot", "status", "createdAt"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "A service offered by the salon or spa",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["spa", "salon"] },
+        "description": { "type": "string" },
+        "price": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["name", "category", "description"]
+    }
+  },
+  "firestore": {
+    "appointments": {
+      "schema": "Appointment",
+      "description": "Collection of appointment bookings"
+    },
+    "services": {
+      "schema": "Service",
+      "description": "Collection of available services"
+    }
+  }
+}
