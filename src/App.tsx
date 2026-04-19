@@ -40,7 +40,7 @@ import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { Toaster } from '../components/ui/sonner';
 import { toast } from 'sonner';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { ScrollArea } from '../components/ui/scroll-area';
 import { cn } from '../lib/utils';
 
@@ -205,11 +205,12 @@ const ElixirMuse = () => {
       }
 
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3-flash-preview",
         contents: { parts: parts.length > 0 ? parts : [{ text: userMsg }] },
         config: {
           systemInstruction: MUSE_SYSTEM_INSTRUCTION,
           temperature: 0.7,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
         },
       });
 
@@ -778,7 +779,7 @@ const VisualConsultSection = () => {
     setLoading(true);
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3-flash-preview",
         contents: [
           {
             inlineData: {
@@ -791,6 +792,7 @@ const VisualConsultSection = () => {
         config: {
           systemInstruction: MUSE_SYSTEM_INSTRUCTION,
           responseMimeType: "application/json",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
         },
       });
 
