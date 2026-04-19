@@ -48,5 +48,23 @@
   @apply bg-luxury-black/40 backdrop-blur-sm border border-white/5 rounded-xl overflow-hidden transition-all duration-300 hover:border-luxury-gold/30 hover:shadow-xl;
 }
 
+@keyframes scan {
+  0% { top: -10%; }
+  100% { top: 110%; }
+}
+
+.animate-scan {
+  animation: scan 2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}
+
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

@@ -21,7 +21,10 @@ import {
   Heart,
   Award,
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  Camera,
+  Image as ImageIcon,
+  Paperclip
 } from 'lucide-react';
 import { format, addDays, startOfToday, isBefore, isSameDay } from 'date-fns';
 import { db, auth } from './lib/firebase';
@@ -37,6 +40,7 @@ import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { Toaster } from '../components/ui/sonner';
 import { toast } from 'sonner';
+import { GoogleGenAI } from "@google/genai";
 import { ScrollArea } from '../components/ui/scroll-area';
 import { cn } from '../lib/utils';
 
@@ -143,7 +147,210 @@ const TIME_SLOTS = [
   '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM'
 ];
 
+// --- AI Setup ---
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+const MUSE_SYSTEM_INSTRUCTION = `Expert beauty consultant for Elixir Touch, Agartala. Tone: Luxury, clinical, concise.
+Services: Thai Massage (₹1499), Aromatherapy (₹1299), Hair Styling/Keratin (₹2499), Bridal Makeup (₹9999), Luxury Facial (₹1999), Mani-Pedi (₹899).
+Offer: ₹200 OFF on 1st visit.
+Analyze photos of hair/skin. Suggest one service. Output: Short, bulleted, professional.`;
+
 // --- Components ---
+const ElixirMuse = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<{role: 'user' | 'muse', content: string, image?: string}[]>([
+    { role: 'muse', content: "Welcome to Elixir Touch. I am Muse, your personal beauty concierge. You may now share a photo of your hair or skin for a personalized visual consultation. How may I assist your transformation today?" }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSend = async () => {
+    if ((!input.trim() && !selectedImage) || isTyping) return;
+
+    const userMsg = input.trim();
+    const userImg = selectedImage;
+    
+    setInput('');
+    setSelectedImage(null);
+    setMessages(prev => [...prev, { role: 'user', content: userMsg || "Photo Consultation", image: userImg || undefined }]);
+    setIsTyping(true);
+
+    try {
+      const parts: any[] = [];
+      if (userImg) {
+        parts.push({
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: userImg.split(',')[1]
+          }
+        });
+      }
+      if (userMsg) {
+        parts.push({ text: userMsg });
+      } else if (userImg) {
+        parts.push({ text: "Please analyze this photo and recommend the best service from Elixir Touch." });
+      }
+
+      const response = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: { parts: parts.length > 0 ? parts : [{ text: userMsg }] },
+        config: {
+          systemInstruction: MUSE_SYSTEM_INSTRUCTION,
+          temperature: 0.7,
+        },
+      });
+
+      const museReply = response.text || "I apologize, I am momentarily indisposed. How else can I help?";
+      setMessages(prev => [...prev, { role: 'muse', content: museReply }]);
+    } catch (error) {
+      console.error("Muse Error:", error);
+      setMessages(prev => [...prev, { role: 'muse', content: "I apologize, I'm having trouble connecting. Please feel free to call us directly." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="mb-4 w-[350px] md:w-[400px] h-[500px] bg-luxury-black/95 backdrop-blur-xl border border-luxury-gold/20 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          >
+            {/* Header */}
+            <div className="p-4 bg-luxury-gold text-luxury-black flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-luxury-black flex items-center justify-center text-luxury-gold text-xs font-serif font-bold">M</div>
+                <div>
+                  <p className="font-serif font-bold text-sm leading-none">Elixir Muse</p>
+                  <p className="text-[10px] opacity-70 uppercase tracking-widest mt-1">AI Beauty Concierge</p>
+                </div>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="hover:rotate-90 transition-transform">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <ScrollArea className="flex-grow p-4">
+              <div className="space-y-4">
+                {messages.map((m, i) => (
+                  <div key={i} className={cn(
+                    "flex flex-col max-w-[85%]",
+                    m.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
+                  )}>
+                    {m.image && (
+                      <div className="mb-2 rounded-xl overflow-hidden border border-white/10 max-w-[200px]">
+                        <img src={m.image} alt="Consultation" className="w-full h-auto" />
+                      </div>
+                    )}
+                    <div className={cn(
+                      "p-3 rounded-2xl text-sm leading-relaxed",
+                      m.role === 'user' 
+                        ? "bg-luxury-gold text-luxury-black rounded-tr-none" 
+                        : "bg-white/5 border border-white/10 text-luxury-white rounded-tl-none"
+                    )}>
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+                {isTyping && (
+                  <div className="bg-white/5 border border-white/10 text-luxury-white p-3 rounded-2xl rounded-tl-none text-xs mr-auto flex gap-1">
+                    <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1 }}>•</motion.span>
+                    <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}>•</motion.span>
+                    <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}>•</motion.span>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Selected Image Preview */}
+            {selectedImage && (
+              <div className="px-4 py-2 border-t border-white/5 bg-luxury-gold/5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded border border-luxury-gold/20 overflow-hidden">
+                    <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                  <span className="text-xs text-luxury-gold font-medium">Image ready for consult</span>
+                </div>
+                <button onClick={() => setSelectedImage(null)} className="text-luxury-white/40 hover:text-white">
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* Input */}
+            <div className="p-4 border-t border-white/5 flex gap-2 items-end">
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/*"
+                className="hidden"
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-luxury-white/60 hover:text-luxury-gold hover:bg-white/5 transition-colors shrink-0"
+              >
+                <ImageIcon size={20} />
+              </button>
+              <textarea 
+                rows={1}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder="Ask about beauty..."
+                className="flex-grow bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:border-luxury-gold transition-colors resize-none py-2"
+              />
+              <button 
+                onClick={handleSend}
+                disabled={isTyping || (!input.trim() && !selectedImage)}
+                className="w-10 h-10 bg-luxury-gold rounded-full flex items-center justify-center text-luxury-black hover:bg-luxury-gold/90 transition-colors disabled:opacity-50 shrink-0"
+              >
+                <ArrowRight size={20} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-16 h-16 bg-luxury-gold text-luxury-black rounded-full shadow-2xl flex items-center justify-center gold-glow relative group"
+      >
+        {isOpen ? <X size={28} /> : <MessageSquare size={28} />}
+        {!isOpen && (
+          <div className="absolute right-full mr-4 bg-luxury-black/90 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            Speak to Elixir Muse
+          </div>
+        )}
+      </motion.button>
+    </div>
+  );
+};
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -159,6 +366,7 @@ const Navbar = () => {
     { name: 'Home', href: '#' },
     { name: 'About', href: '#about' },
     { name: 'Services', href: '#services' },
+    { name: 'Visual Consult', href: '#visual-consult' },
     { name: 'Team', href: '#team' },
     { name: 'Gallery', href: '#gallery' },
     { name: 'Contact', href: '#contact' },
@@ -506,6 +714,358 @@ const Team = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const VisualConsultSection = () => {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [scanStep, setScanStep] = useState(0);
+  const [timer, setTimer] = useState(12);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const scanMessages = [
+    "Detecting pigmentation...",
+    "Scanning hydration levels...",
+    "Analyzing follicular density...",
+    "Consulting Elixir expert database...",
+    "Mapping epidermal layers...",
+    "Finalizing bespoke ritual..."
+  ];
+
+  useEffect(() => {
+    let interval: any;
+    let timerInterval: any;
+    
+    if (loading) {
+      setScanStep(0);
+      setTimer(12);
+      
+      interval = setInterval(() => {
+        setScanStep(prev => (prev + 1) % scanMessages.length);
+      }, 2000);
+
+      timerInterval = setInterval(() => {
+        setTimer(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(timerInterval);
+    };
+  }, [loading]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+        setAnalysis(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const startConsultation = async () => {
+    if (!selectedImage) return;
+
+    setLoading(true);
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: [
+          {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: selectedImage.split(',')[1]
+            }
+          },
+          { text: "Analyze image. JSON ONLY: {title, labels:{type,concern,issues}, currentCondition:[], recommendedService:'', expectedResults:[]}" }
+        ],
+        config: {
+          systemInstruction: MUSE_SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+        },
+      });
+
+      try {
+        const data = JSON.parse(response.text || "{}");
+        setAnalysis(data);
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        toast.error("Format mismatch. Please try again.");
+      }
+    } catch (error) {
+      console.error("Consultation Error:", error);
+      toast.error("The Muse is currently resting. Please try again shortly.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section id="visual-consult" className="py-24 bg-[#0F0F0F] relative overflow-hidden">
+      {/* Background Accents */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#D4AF37]/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <div className="text-center mb-16 space-y-4">
+          <Badge className="bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/20 mb-2 px-4 py-1 text-xs uppercase tracking-widest font-bold">
+            Premium Innovation
+          </Badge>
+          <h2 className="text-4xl md:text-5xl font-serif font-bold text-white tracking-tight">AI Professional <span className="italic text-[#D4AF37]">Consult</span></h2>
+          <p className="text-[#B0B0B0] max-w-xl mx-auto text-sm md:text-base">
+            Upload your photo for a clinical-grade aesthetic analysis. 
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8 items-start max-w-6xl mx-auto">
+          {/* Upload Card */}
+          <div className="space-y-6">
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "w-full aspect-[4/5] rounded-[16px] border border-white/5 bg-[#1A1A1A] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-[#222] overflow-hidden relative group shadow-2xl",
+                selectedImage && "border-[#D4AF37]/30"
+              )}
+            >
+              {selectedImage ? (
+                <>
+                  <img src={selectedImage} alt="Uploaded" className="w-full h-full object-cover opacity-80" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                    <p className="text-white font-bold flex items-center gap-2 text-sm uppercase tracking-widest">
+                      <Camera size={18} /> Replace Photo
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4 text-center p-8">
+                  <div className="w-14 h-14 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mx-auto text-[#D4AF37]">
+                    <Camera size={28} />
+                  </div>
+                  <div>
+                    <p className="font-serif font-bold text-xl text-white">Upload Profile</p>
+                    <p className="text-[#B0B0B0] text-xs mt-1 uppercase tracking-wider">Hair or Skin focus</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImageChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
+            
+            <Button 
+              onClick={startConsultation}
+              disabled={!selectedImage || loading}
+              className="w-full bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 rounded-[10px] h-14 text-base font-bold transition-all shadow-lg"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Sparkles className="animate-pulse w-5 h-5" /> Analyzing...
+                </span>
+              ) : (
+                "Run Beauty Analysis"
+              )}
+            </Button>
+          </div>
+
+          {/* Result Card (Report UI) */}
+          <div className="h-full">
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading-skeleton"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-[#1A1A1A] border border-[#D4AF37]/10 rounded-[16px] p-6 md:p-8 shadow-2xl relative overflow-hidden h-full min-h-[500px]"
+                >
+                  {/* Scanline Animation */}
+                  <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#D4AF37]/40 to-transparent z-20 animate-scan pointer-events-none shadow-[0_0_15px_#D4AF37]"></div>
+
+                  <div className="space-y-6 relative z-10 animate-pulse">
+                    {/* Skeleton Header */}
+                    <div className="flex justify-between items-start border-b border-white/5 pb-6">
+                      <div className="space-y-3">
+                        <div className="h-8 w-56 bg-white/10 rounded-lg relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                        </div>
+                        <div className="h-3 w-40 bg-white/5 rounded relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                        </div>
+                      </div>
+                      <div className="font-mono text-[#D4AF37] font-bold text-2xl flex flex-col items-end">
+                        <span className="text-[10px] uppercase tracking-[0.2em] opacity-40 mb-1">Scanning System</span>
+                        00:{timer < 10 ? `0${timer}` : timer}
+                      </div>
+                    </div>
+
+                    {/* Step Message with Glow */}
+                    <div className="py-2 px-4 rounded-full bg-[#D4AF37]/5 border border-[#D4AF37]/10 w-fit">
+                      <p className="text-[#D4AF37] font-mono text-[10px] uppercase tracking-[0.3em] flex items-center gap-3">
+                        <span className="w-2 h-2 rounded-full bg-[#D4AF37] shadow-[0_0_8px_#D4AF37] animate-pulse"></span>
+                        {scanMessages[scanStep]}
+                      </p>
+                    </div>
+
+                    {/* Skeleton Dashboard Labels */}
+                    <div className="grid grid-cols-3 gap-6">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="space-y-3">
+                          <div className="h-2 w-10 bg-[#D4AF37]/20 rounded relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#D4AF37]/20 to-transparent animate-shimmer"></div>
+                          </div>
+                          <div className="h-5 w-full bg-white/5 rounded-md relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Skeleton Content Sections */}
+                    <div className="space-y-10 pt-4">
+                      <div className="space-y-5">
+                        <div className="h-3 w-32 bg-white/20 rounded relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="h-3 w-full bg-white/5 rounded relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                          </div>
+                          <div className="h-3 w-[95%] bg-white/5 rounded relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                          </div>
+                          <div className="h-3 w-[85%] bg-white/5 rounded relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="h-24 w-full bg-[#D4AF37]/5 border border-[#D4AF37]/10 rounded-[16px] relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#D4AF37]/10 to-transparent animate-shimmer"></div>
+                      </div>
+
+                      <div className="space-y-5">
+                        <div className="h-3 w-32 bg-white/20 rounded relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="h-3 w-full bg-white/5 rounded relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                          </div>
+                          <div className="h-3 w-[90%] bg-white/5 rounded relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : analysis ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="bg-[#1A1A1A] border border-[#D4AF37]/20 rounded-[16px] p-6 md:p-8 shadow-2xl relative"
+                >
+                  <div className="space-y-6">
+                    {/* Header */}
+                    <div className="flex justify-between items-start border-b border-white/5 pb-6">
+                      <div>
+                        <h3 className="text-[22px] font-serif font-bold text-white mb-1">{analysis.title}</h3>
+                        <p className="text-[#B0B0B0] text-[12px] uppercase tracking-widest font-medium">Digital Concierge Report</p>
+                      </div>
+                      <Sparkles size={20} className="text-[#D4AF37]" />
+                    </div>
+
+                    {/* Dashboard Labels */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <p className="text-[12px] font-bold text-[#D4AF37] uppercase tracking-widest flex items-center gap-2">
+                          <span className="text-[14px]">🧴</span> Type
+                        </p>
+                        <p className="text-white text-[14px] font-medium leading-tight">{analysis.labels?.type}</p>
+                      </div>
+                      <div className="space-y-2 border-l border-white/5 pl-4 ml-0 md:ml-0">
+                        <p className="text-[12px] font-bold text-[#D4AF37] uppercase tracking-widest flex items-center gap-2">
+                          <span className="text-[14px]">⚠️</span> Concern
+                        </p>
+                        <p className="text-white text-[14px] font-medium leading-tight">{analysis.labels?.concern}</p>
+                      </div>
+                      <div className="space-y-2 border-l border-white/5 pl-4 ml-0 md:ml-0">
+                        <p className="text-[12px] font-bold text-[#D4AF37] uppercase tracking-widest flex items-center gap-2">
+                          <span className="text-[14px]">📋</span> Issues
+                        </p>
+                        <p className="text-white text-[14px] font-medium leading-tight">{analysis.labels?.issues}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6 pt-2">
+                      {/* Current Condition */}
+                      <div className="space-y-3">
+                        <label className="text-[14px] font-bold text-white uppercase tracking-wider">Current Condition</label>
+                        <ul className="space-y-2">
+                          {analysis.currentCondition?.map((item: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-[#B0B0B0] text-[14px]">
+                              <span className="text-[#D4AF37] mt-1.5 w-1.5 h-1.5 rounded-full bg-[#D4AF37] shrink-0" />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Recommended Service */}
+                      <div className="space-y-3 p-4 rounded-[12px] bg-[#D4AF37]/5 border border-[#D4AF37]/10">
+                        <label className="text-[14px] font-bold text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
+                          <span className="text-[16px]">💆</span> Recommended Service
+                        </label>
+                        <p className="text-white text-[18px] font-serif font-bold">
+                          {analysis.recommendedService}
+                        </p>
+                      </div>
+
+                      {/* Expected Results */}
+                      <div className="space-y-3">
+                        <label className="text-[14px] font-bold text-white uppercase tracking-wider">Expected Results</label>
+                        <ul className="space-y-2">
+                          {analysis.expectedResults?.map((item: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-[#B0B0B0] text-[14px]">
+                              <span className="text-[#D4AF37] mt-1.5">✨</span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Final CTA */}
+                    <div className="pt-4">
+                      <Button className="w-full bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 rounded-[10px] h-12 text-base font-bold transition-all shadow-lg" asChild>
+                        <a href="#booking">Book This Service</a>
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <div className="h-[500px] flex flex-col items-center justify-center text-center p-12 border border-white/5 rounded-[16px] bg-[#1A1A1A]/40 backdrop-blur-sm">
+                  <Sparkles size={48} className="text-[#D4AF37]/20 mb-6" />
+                  <p className="font-serif italic text-2xl text-white/40">Ready for Transformation</p>
+                  <p className="text-xs mt-4 text-[#B0B0B0]/40 uppercase tracking-[0.2em]">Upload photo for clinical report</p>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </section>
@@ -865,6 +1425,7 @@ const Footer = () => {
               <li><a href="#" className="hover:text-luxury-gold transition-colors">Home</a></li>
               <li><a href="#about" className="hover:text-luxury-gold transition-colors">About Us</a></li>
               <li><a href="#services" className="hover:text-luxury-gold transition-colors">Services</a></li>
+              <li><a href="#visual-consult" className="hover:text-luxury-gold transition-colors">Visual Consult</a></li>
               <li><a href="#booking" className="hover:text-luxury-gold transition-colors">Book Appointment</a></li>
             </ul>
           </div>
@@ -925,6 +1486,7 @@ export default function App() {
 
         <About />
         <Services />
+        <VisualConsultSection />
         <WhyChooseUs />
         <Team />
         <BookingSection />
@@ -934,6 +1496,8 @@ export default function App() {
       </main>
 
       <Footer />
+
+      <ElixirMuse />
 
       {/* Sticky Mobile CTA */}
       <div className="md:hidden fixed bottom-6 left-6 right-6 z-40">
