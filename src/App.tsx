@@ -830,57 +830,72 @@ const VisualConsultSection = () => {
 
         <div className="grid lg:grid-cols-2 gap-8 items-start max-w-6xl mx-auto">
           {/* Upload Card */}
-          <div className="space-y-6">
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "w-full aspect-[4/5] rounded-[16px] border border-white/5 bg-[#1A1A1A] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-[#222] overflow-hidden relative group shadow-2xl",
-                selectedImage && "border-[#D4AF37]/30"
-              )}
-            >
-              {selectedImage ? (
-                <>
-                  <img src={selectedImage} alt="Uploaded" className="w-full h-full object-cover opacity-80" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                    <p className="text-white font-bold flex items-center gap-2 text-sm uppercase tracking-widest">
-                      <Camera size={18} /> Replace Photo
-                    </p>
+            <div className="space-y-6">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "w-full aspect-[4/5] rounded-[16px] border border-white/5 bg-[#1A1A1A] flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-[#222] overflow-hidden relative group shadow-2xl",
+                  selectedImage && "border-[#D4AF37]/30"
+                )}
+              >
+                {selectedImage ? (
+                  <>
+                    <img src={selectedImage} alt="Uploaded" className="w-full h-full object-cover opacity-80" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                      <p className="text-white font-bold flex items-center gap-2 text-sm uppercase tracking-widest">
+                        <Camera size={18} /> Change Photo
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-4 text-center p-8">
+                    <div className="w-14 h-14 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mx-auto text-[#D4AF37]">
+                      <Camera size={28} />
+                    </div>
+                    <div>
+                      <p className="font-serif font-bold text-xl text-white">Upload Profile</p>
+                      <p className="text-[#B0B0B0] text-xs mt-1 uppercase tracking-wider">Hair or Skin focus</p>
+                    </div>
                   </div>
-                </>
-              ) : (
-                <div className="space-y-4 text-center p-8">
-                  <div className="w-14 h-14 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mx-auto text-[#D4AF37]">
-                    <Camera size={28} />
-                  </div>
-                  <div>
-                    <p className="font-serif font-bold text-xl text-white">Upload Profile</p>
-                    <p className="text-[#B0B0B0] text-xs mt-1 uppercase tracking-wider">Hair or Skin focus</p>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageChange} 
+                accept="image/*" 
+                className="hidden" 
+              />
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  onClick={startConsultation}
+                  disabled={!selectedImage || loading}
+                  className="flex-1 bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 rounded-[10px] h-14 text-base font-bold transition-all shadow-lg"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="animate-pulse w-5 h-5" /> Analyzing...
+                    </span>
+                  ) : (
+                    "Run Beauty Analysis"
+                  )}
+                </Button>
+                
+                {selectedImage && !loading && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setAnalysis(null);
+                    }}
+                    className="border-[#D4AF37]/20 text-white hover:bg-white/5 rounded-[10px] h-14 px-6 font-bold"
+                  >
+                    Retake
+                  </Button>
+                )}
+              </div>
             </div>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImageChange} 
-              accept="image/*" 
-              className="hidden" 
-            />
-            
-            <Button 
-              onClick={startConsultation}
-              disabled={!selectedImage || loading}
-              className="w-full bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 rounded-[10px] h-14 text-base font-bold transition-all shadow-lg"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Sparkles className="animate-pulse w-5 h-5" /> Analyzing...
-                </span>
-              ) : (
-                "Run Beauty Analysis"
-              )}
-            </Button>
-          </div>
 
           {/* Result Card (Report UI) */}
           <div className="h-full">
@@ -981,80 +996,107 @@ const VisualConsultSection = () => {
                   exit={{ opacity: 0, scale: 0.98 }}
                   className="bg-[#1A1A1A] border border-[#D4AF37]/20 rounded-[16px] p-6 md:p-8 shadow-2xl relative"
                 >
-                  <div className="space-y-6">
+                  <div className="space-y-8">
                     {/* Header */}
                     <div className="flex justify-between items-start border-b border-white/5 pb-6">
                       <div>
-                        <h3 className="text-[22px] font-serif font-bold text-white mb-1">{analysis.title}</h3>
-                        <p className="text-[#B0B0B0] text-[12px] uppercase tracking-widest font-medium">Digital Concierge Report</p>
+                        <h3 className="text-[24px] font-serif font-bold text-white mb-1">{analysis.title}</h3>
+                        <p className="text-[#D4AF37] text-[12px] uppercase tracking-widest font-bold">Clinical Esthetic Report</p>
                       </div>
-                      <Sparkles size={20} className="text-[#D4AF37]" />
-                    </div>
-
-                    {/* Dashboard Labels */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <p className="text-[12px] font-bold text-[#D4AF37] uppercase tracking-widest flex items-center gap-2">
-                          <span className="text-[14px]">🧴</span> Type
-                        </p>
-                        <p className="text-white text-[14px] font-medium leading-tight">{analysis.labels?.type}</p>
-                      </div>
-                      <div className="space-y-2 border-l border-white/5 pl-4 ml-0 md:ml-0">
-                        <p className="text-[12px] font-bold text-[#D4AF37] uppercase tracking-widest flex items-center gap-2">
-                          <span className="text-[14px]">⚠️</span> Concern
-                        </p>
-                        <p className="text-white text-[14px] font-medium leading-tight">{analysis.labels?.concern}</p>
-                      </div>
-                      <div className="space-y-2 border-l border-white/5 pl-4 ml-0 md:ml-0">
-                        <p className="text-[12px] font-bold text-[#D4AF37] uppercase tracking-widest flex items-center gap-2">
-                          <span className="text-[14px]">📋</span> Issues
-                        </p>
-                        <p className="text-white text-[14px] font-medium leading-tight">{analysis.labels?.issues}</p>
+                      <div className="bg-[#D4AF37]/10 p-2 rounded-lg">
+                        <Sparkles size={24} className="text-[#D4AF37]" />
                       </div>
                     </div>
 
-                    <div className="space-y-6 pt-2">
-                      {/* Current Condition */}
-                      <div className="space-y-3">
-                        <label className="text-[14px] font-bold text-white uppercase tracking-wider">Current Condition</label>
-                        <ul className="space-y-2">
+                    {/* Dashboard Labels - Grid with separators */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-white/5 rounded-xl overflow-hidden bg-white/5">
+                      <div className="p-4 border-b md:border-b-0 md:border-r border-white/5">
+                        <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest mb-1">
+                          Skin/Hair Type
+                        </p>
+                        <p className="text-white text-[15px] font-medium leading-tight">{analysis.labels?.type}</p>
+                      </div>
+                      <div className="p-4 border-b md:border-b-0 md:border-r border-white/5">
+                        <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest mb-1">
+                          Primary Concern
+                        </p>
+                        <p className="text-white text-[15px] font-medium leading-tight">{analysis.labels?.concern}</p>
+                      </div>
+                      <div className="p-4">
+                        <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest mb-1">
+                          Target Areas
+                        </p>
+                        <p className="text-white text-[15px] font-medium leading-tight">{analysis.labels?.issues}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-8">
+                      {/* Current Condition Section */}
+                      <div className="p-6 rounded-xl border border-white/5 bg-white/5 relative overflow-hidden group hover:border-[#D4AF37]/30 transition-colors">
+                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <ImageIcon size={40} className="text-white" />
+                        </div>
+                        <h4 className="text-[14px] font-bold text-white uppercase tracking-widest mb-4 border-l-2 border-[#D4AF37] pl-3">
+                          Current Observation
+                        </h4>
+                        <ul className="space-y-3">
                           {analysis.currentCondition?.map((item: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-[#B0B0B0] text-[14px]">
-                              <span className="text-[#D4AF37] mt-1.5 w-1.5 h-1.5 rounded-full bg-[#D4AF37] shrink-0" />
+                            <li key={i} className="flex items-start gap-3 text-[#B0B0B0] text-[14px] leading-relaxed">
+                              <span className="text-[#D4AF37] mt-1.5 w-1.5 h-1.5 rounded-full bg-[#D4AF37] shrink-0 shadow-[0_0_8px_#D4AF37]" />
                               {item}
                             </li>
                           ))}
                         </ul>
                       </div>
 
-                      {/* Recommended Service */}
-                      <div className="space-y-3 p-4 rounded-[12px] bg-[#D4AF37]/5 border border-[#D4AF37]/10">
-                        <label className="text-[14px] font-bold text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
-                          <span className="text-[16px]">💆</span> Recommended Service
-                        </label>
-                        <p className="text-white text-[18px] font-serif font-bold">
-                          {analysis.recommendedService}
-                        </p>
+                      {/* Recommended Service Section */}
+                      <div className="p-6 rounded-xl border border-[#D4AF37]/20 bg-gradient-to-br from-[#D4AF37]/10 to-transparent relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-3 opacity-20">
+                          <Scissors size={40} className="text-[#D4AF37]" />
+                        </div>
+                        <h4 className="text-[14px] font-bold text-[#D4AF37] uppercase tracking-widest mb-4 border-l-2 border-[#D4AF37] pl-3">
+                          Prescribed Treatment
+                        </h4>
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-[#D4AF37] flex items-center justify-center text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                            <Scissors size={24} />
+                          </div>
+                          <div>
+                            <p className="text-white text-[22px] font-serif font-bold tracking-tight">
+                              {analysis.recommendedService}
+                            </p>
+                            <p className="text-[#B0B0B0] text-[11px] uppercase tracking-wider mt-1">Recommended for immediate results</p>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Expected Results */}
-                      <div className="space-y-3">
-                        <label className="text-[14px] font-bold text-white uppercase tracking-wider">Expected Results</label>
-                        <ul className="space-y-2">
+                      {/* Expected Results Section */}
+                      <div className="p-6 rounded-xl border border-white/5 bg-white/5 relative overflow-hidden group hover:border-[#D4AF37]/30 transition-colors">
+                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <Sparkles size={40} className="text-white" />
+                        </div>
+                        <h4 className="text-[14px] font-bold text-white uppercase tracking-widest mb-4 border-l-2 border-[#D4AF37] pl-3">
+                          Anticipated Outcomes
+                        </h4>
+                        <div className="grid grid-cols-1 gap-4">
                           {analysis.expectedResults?.map((item: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-[#B0B0B0] text-[14px]">
-                              <span className="text-[#D4AF37] mt-1.5">✨</span>
-                              {item}
-                            </li>
+                            <div key={i} className="flex items-center gap-4 bg-black/20 p-3 rounded-lg border border-white/5">
+                              <div className="w-8 h-8 rounded-full bg-[#D4AF37]/10 flex items-center justify-center shrink-0">
+                                <span className="text-[#D4AF37] font-bold text-sm">{i + 1}</span>
+                              </div>
+                              <p className="text-[#B0B0B0] text-[14px] font-medium leading-tight">
+                                {item}
+                              </p>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     </div>
 
                     {/* Final CTA */}
                     <div className="pt-4">
-                      <Button className="w-full bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 rounded-[10px] h-12 text-base font-bold transition-all shadow-lg" asChild>
-                        <a href="#booking">Book This Service</a>
+                      <Button className="w-full bg-[#D4AF37] text-black hover:bg-[#D4AF37]/90 rounded-[10px] h-14 text-base font-bold transition-all shadow-lg active:scale-[0.98]" asChild>
+                        <a href="#booking">Book Prescribed Ritual</a>
                       </Button>
                     </div>
                   </div>
