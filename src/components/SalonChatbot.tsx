@@ -186,17 +186,44 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data: {
+        error?: string;
+        reply?: string;
+        mapsSources?: MapsSource[];
+        recommendedServiceOption?: string;
+      } | null = null;
+
+      if (rawText.trim()) {
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          if (!response.ok) {
+            throw new Error(`Concierge service returned an unexpected response (${response.status}). Please try again.`);
+          }
+          throw new Error('Received a malformed response from the AI concierge. Please try again.');
+        }
+      }
+
       if (!response.ok) {
-        throw new Error(data?.error || 'Unable to get a response right now.');
+        throw new Error(
+          data?.error || `Unable to reach Floraison AI Concierge (HTTP ${response.status}). Please try again.`
+        );
+      }
+
+      if (!data || typeof data.reply !== 'string' || !data.reply.trim()) {
+        throw new Error('The AI concierge returned an empty response. Please try asking again.');
       }
 
       const botMsg: ChatMessage = {
         id: `model-${Date.now()}`,
         role: 'model',
-        text: data.reply,
+        text: data.reply.trim(),
         mapsSources: Array.isArray(data.mapsSources) ? data.mapsSources : [],
-        recommendedServiceOption: data.recommendedServiceOption || 'Free Consultation',
+        recommendedServiceOption:
+          typeof data.recommendedServiceOption === 'string' && data.recommendedServiceOption.trim()
+            ? data.recommendedServiceOption
+            : 'Free Consultation',
         showBookingCta: true,
       };
 

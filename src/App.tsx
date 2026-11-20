@@ -154,14 +154,54 @@ export default function FloraisonLanding() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', service: 'Free Consultation', time: '' });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingReference, setBookingReference] = useState<string | null>(null);
   const [aiRecommendationLabel, setAiRecommendationLabel] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const bookingNameInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    // In a real app, send this to a backend
+    if (isSubmittingBooking) return;
+
+    setBookingError(null);
+    setIsSubmittingBooking(true);
+
+    try {
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const rawText = await response.text();
+      let data: { error?: string; bookingId?: string } | null = null;
+
+      if (rawText.trim()) {
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          if (!response.ok) {
+            throw new Error(`Unable to submit booking (HTTP ${response.status}). Please try again or call us.`);
+          }
+          throw new Error('Received an unexpected response from the booking desk. Please try again.');
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || `Unable to confirm slot right now (HTTP ${response.status}).`);
+      }
+
+      setBookingReference(typeof data?.bookingId === 'string' ? data.bookingId : null);
+      setIsSubmitted(true);
+    } catch (err) {
+      setBookingError(
+        err instanceof Error ? err.message : 'Unable to reach booking server. Please call us or try again.'
+      );
+    } finally {
+      setIsSubmittingBooking(false);
+    }
   };
 
   const handleBookRecommendation = (serviceOption: string, serviceDisplayName: string) => {
@@ -590,6 +630,11 @@ export default function FloraisonLanding() {
                   <Check className="w-10 h-10 text-luxury-gold" />
                 </div>
                 <h3 className="text-2xl font-serif text-luxury-white">Consultation Secured!</h3>
+                {bookingReference && (
+                  <p className="text-xs uppercase tracking-widest text-luxury-gold font-bold">
+                    Booking Reference: {bookingReference}
+                  </p>
+                )}
                 <p className="text-luxury-champagne">Our concierge will contact you within the next 15 minutes to confirm your preferred session time.</p>
                 <LuxuryButton variant="secondary" onClick={() => setIsSubmitted(false)}>Back to site</LuxuryButton>
               </motion.div>
@@ -643,8 +688,15 @@ export default function FloraisonLanding() {
                     onChange={(e) => setFormData({...formData, time: e.target.value})}
                   />
                 </div>
+                {bookingError && (
+                  <div className="md:col-span-2 rounded-xl bg-red-500/10 border border-red-400/30 px-4 py-3 text-xs text-red-200 text-center">
+                    {bookingError}
+                  </div>
+                )}
                 <div className="md:col-span-2 pt-6">
-                  <LuxuryButton className="w-full text-lg py-5">Secure My Slot Now</LuxuryButton>
+                  <LuxuryButton className="w-full text-lg py-5">
+                    {isSubmittingBooking ? 'Securing Your Slot...' : 'Secure My Slot Now'}
+                  </LuxuryButton>
                   <p className="mt-4 text-center text-[10px] text-luxury-champagne/70 uppercase tracking-widest">
                     Or call us directly at {BUSINESS_INFO.phonePrimary} / {BUSINESS_INFO.phoneSecondary}
                   </p>

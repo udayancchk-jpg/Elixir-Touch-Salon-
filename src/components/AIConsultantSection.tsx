@@ -131,12 +131,29 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || 'Could not complete analysis. Please try again.');
+      const rawText = await response.text();
+      let data: (ConsultationResult & { error?: string }) | null = null;
+
+      if (rawText.trim()) {
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          if (!response.ok) {
+            throw new Error(`Consultation service returned an unexpected error (${response.status}). Please try again.`);
+          }
+          throw new Error('Received a malformed response from the AI consultant. Please try again.');
+        }
       }
 
-      setResult(data as ConsultationResult);
+      if (!response.ok) {
+        throw new Error(data?.error || `Could not complete analysis (HTTP ${response.status}). Please try again.`);
+      }
+
+      if (!data || typeof data.detectedProblemTitle !== 'string' || typeof data.recommendedServiceOption !== 'string') {
+        throw new Error('The AI consultant returned an empty or incomplete analysis. Please try again.');
+      }
+
+      setResult(data);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         setError('Analysis timed out due to a slow connection. Please try again.');
