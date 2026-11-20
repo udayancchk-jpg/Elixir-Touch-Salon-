@@ -2,5 +2,7 @@
   "name": "INDULGE THE SALON",
   "description": "High-converting luxury landing page for INDULGE THE SALON. Premium hair, spa, and styling experiences in a modern aesthetic.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
