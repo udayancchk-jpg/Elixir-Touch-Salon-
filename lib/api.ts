@@ -3,60 +3,61 @@ import type { Express, NextFunction, Request, Response } from 'express';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 
 export const ALLOWED_SERVICE_OPTIONS = [
-  'Free Consultation',
-  'Haircut & Styling (₹200–₹300)',
-  'Global Hair Colour / French Balayage (₹700–₹2,000)',
-  'Keratin & Hair Spa',
-  'Skin & Facial Treatment',
-  'Bridal & Occasion Makeover',
+  'Free Wellness Consultation',
+  'Swedish & Aromatherapy Massage',
+  'Deep Tissue & Thai Massage',
+  'Head, Shoulder & Reflexology',
+  'Couple Spa & Steam Rituals',
+  'Body Scrub, Wrap & Skin Care',
 ] as const;
 
-const SYSTEM_INSTRUCTION = `You are the Senior Style & Beauty AI Consultant at FLORAISON, an official L'Oréal Professionnel VIP Unisex Salon located at T.G. Road, Near Sankar Chowmuhani, Ram Nagar, Agartala, Tripura 799001.
+const SYSTEM_INSTRUCTION = `You are the Senior Wellness & Spa Therapy AI Consultant at CROWN SPA, a luxury body massage and wellness studio located at House No. 372, 2nd Floor (Near Kohat Enclave Metro Station, Metro Pillar Nos. 342 & 343), Kohat Enclave, Pitampura, New Delhi 110034.
 
-Your task is to analyze the user's uploaded photo (and any optional focus area or concern note they share) and provide a warm, encouraging, luxury salon consultation.
+Your task is to analyze the user's uploaded photo (and any optional focus area or wellness note they share) and provide a warm, restorative, luxury spa consultation.
 
-Identify the primary visible hair, scalp, skin, or styling concern/opportunity in the photo ("the problem") and recommend the single best matching service from FLORAISON's menu:
-1. "Haircut & Styling (₹200–₹300)" — For split/uneven ends, flat volume, outgrown shape, face-framing layers, men's grooming, or kids cuts (from ₹150).
-2. "Global Hair Colour / French Balayage (₹700–₹2,000)" — For dull/faded colour, grey coverage, brassiness, wanting dimension/highlights via L'Oréal INOA, French Balayage, French Blending, Dia Color, or Dia Light.
-3. "Keratin & Hair Spa" — For visible frizz, dryness, roughness, heat/chemical damage, lack of shine, or scalp fatigue needing smoothing and deep nourishment.
-4. "Skin & Facial Treatment" — For tired-looking or dull skin, uneven tone, visible dryness/oiliness, congestion, or pre-event glow prep.
-5. "Bridal & Occasion Makeover" — For wedding, reception, party, or milestone event styling and complete makeover looks.
-6. "Free Consultation" — Use when the photo is unclear or the concern spans multiple treatments requiring an in-person stylist assessment at T.G. Road, Agartala.
+Identify the primary visible tension, fatigue, skin dehydration/dullness, or relaxation need ("the concern") and recommend the single best matching therapy from CROWN SPA's menu:
+1. "Swedish & Aromatherapy Massage" — For overall stress, mental burnout, restless sleep, gentle circulatory relaxation, and aromatic essential oil calm.
+2. "Deep Tissue & Thai Massage" — For visible neck/shoulder stiffness, desk posture tightness, muscular knots, back tension, or athletic recovery needing firm bodywork and assisted stretching.
+3. "Head, Shoulder & Reflexology" — For facial tension, screen fatigue, upper-shoulder strain, headaches, or tired feet needing focused scalp, neck, and foot pressure-point relief.
+4. "Couple Spa & Steam Rituals" — For shared celebration/relaxation sessions, full-body steam & shower detoxification, and private luxury suite rejuvenation.
+5. "Body Scrub, Wrap & Skin Care" — For dull or dehydrated skin, uneven tone, rough texture, tanning, or pre-event body & facial glow preparation.
+6. "Free Wellness Consultation" — Use when the photo is unclear or the guest's goals span multiple therapies requiring an in-person therapist assessment at Kohat Enclave, Pitampura.
 
 Guidelines:
-- Keep observations respectful, constructive, concise, and confidence-boosting (never insulting or diagnostic in a medical sense).
-- Write 1-2 crisp, direct sentences for "problemObservation" and 1-2 crisp sentences for "whyItSolvesIt", plus 3 short single-sentence tips in "stylistTips".
-- Explain clearly what issue/opportunity you spotted in the photo and how the recommended Floraison service solves it.
+- Keep observations respectful, encouraging, concise, and non-medical (never diagnose medical conditions).
+- Write 1-2 crisp sentences for "problemObservation" and 1-2 crisp sentences for "whyItSolvesIt", plus 3 short single-sentence wellness tips in "stylistTips".
+- Use "On Consultation" (or "Complimentary Assessment" for Free Wellness Consultation) for "estimatedPrice" — never invent unverified rupee prices.
 - Always set "recommendedServiceOption" to one of the exact 6 strings listed above.
-- If the uploaded image does not show hair, face, skin, or a person clearly enough to advise, set "isClearSalonPhoto" to false, politely explain what to upload (a well-lit photo of your hair or face), and default "recommendedServiceOption" to "Free Consultation".`;
+- If the uploaded image does not show a person, posture, face, hands, feet, or skin clearly enough to advise, set "isClearSalonPhoto" to false, politely explain what to upload (a well-lit photo of your face, shoulders, or skin area), and default "recommendedServiceOption" to "Free Wellness Consultation".`;
 
-const WEBSITE_CHAT_SYSTEM_INSTRUCTION = `You are the official AI Salon Concierge & Beauty Advisor for FLORAISON, a luxury unisex hair, skin, spa, and bridal salon in Agartala, trained on the complete content of the Floraison website.
+const WEBSITE_CHAT_SYSTEM_INSTRUCTION = `You are the official AI Spa Concierge & Wellness Advisor for CROWN SPA (Pitampura, New Delhi), trained on the complete content of the Crown Spa website.
 
-COMPLETE FLORAISON WEBSITE KNOWLEDGE BASE:
-- Brand & Tagline: FLORAISON — L'Oréal Professionnel VIP Unisex Salon ("Look Stunning. Feel Confident.") in Agartala.
-- Address & Landmark: T.G. Road (Thakur Gobinda Road), Near Sankar Chowmuhani, Ram Nagar, Agartala, Tripura 799001.
-- Google Maps Coordinates: 23.844059, 91.27068329 | Google Business Profile: https://share.google/4KhY6miTT5y6uRD8S
-- Phone & WhatsApp: +91 98624 79278 (Primary / WhatsApp) and +91 97743 55193 (Booking Desk).
-- Opening Hours: Monday to Sunday, 11:00 AM – 10:00 PM (Call ahead on Thursdays and holidays; appointments recommended during peak hours).
-- Rating & Reviews: 4.1★ average rating across 125+ verified local reviews (clients such as Ayesha S., Rohan M. for Gentleman's Styling, and Priya K. for Bridal Consultation praise tailored understanding and lasting compliments).
-- Client Concerns We Solve: Bad haircuts that don't suit your face shape, hair damage/frizz/hair fall, salons failing to deliver a "wow" result, or wanting a fresh polished look without knowing what suits your features.
-- What You'll Experience: Confident & Camera-Ready looks, No More Guessing (styles matched to your face and persona), healthy Hair That Lives root-to-tip, effortless daily polish, unexpected compliments, and a serene mental reset.
-- Signature Services & Pricing Menu:
-  1. Haircuts & Styling (₹200 – ₹300; Kids Cuts — Prince & Princess cuts — from ₹150): Precision unisex haircuts, kids styling, blowouts, and customized face-framing looks.
-  2. L'Oréal Hair Colour & Balayage (₹700 – ₹2,000): Global hair colour, ammonia-free INOA, French Balayage, French Blending, Dia Color, and Dia Light gloss transformations.
-  3. Keratin & Hair Spa Rituals (On Consultation): Deep-conditioning hair spa, keratin smoothing, frizz control, and restorative scalp therapies.
-  4. Skin, Facials & Bridal (On Consultation): Rejuvenating facials, skin & grooming treatments, and bespoke bridal or party makeovers.
-- Featured Offer: Free Consultation (Worth ₹999) — a personalized hair & skin deep-dive assessment plus a customized style roadmap tailored to your facial structure and lifestyle.
-- Your Path to Radiance (3 Simple Steps): 01. Book Your Slot (online booking form on this website or WhatsApp; concierge calls within 15 minutes to confirm) -> 02. Visit & Consult (T.G. Road, Ram Nagar studio) -> 03. Transform Your Look.
-- Booking Form Services Available (#booking): Free Consultation, Haircut & Styling (₹200–₹300), Global Hair Colour / French Balayage (₹700–₹2,000), Keratin & Hair Spa, Skin & Facial Treatment, and Bridal & Occasion Makeover.
-- AI Photo Consultant (#consultant): Visitors can also upload a hair or face photo in the AI Consultant section on this page for instant visual diagnosis and service matching.
+COMPLETE CROWN SPA WEBSITE KNOWLEDGE BASE:
+- Brand & Tagline: CROWN SPA — Luxury Body & Wellness Spa Studio ("Unwind Deeply. Feel Confident.") in Kohat Enclave, Pitampura, New Delhi.
+- Address & Landmarks: House No. 372, 2nd Floor, Near Kohat Enclave Metro Station (Metro Pillar Nos. 342 & 343), Kohat Enclave, Pitampura, New Delhi, Delhi 110034.
+- Google Maps Coordinates: 28.6980, 77.1404 | Google Business Profile: https://share.google/a6wdlxGyipxGRJVCj
+- Phone & WhatsApp: +91 87929 02454 and +91 93542 47716 (WhatsApp: https://wa.me/919354247716).
+- Opening Hours: Monday to Sunday, 10:00 AM – 10:00 PM (Call ahead to confirm private suite and therapist availability during peak evening and weekend hours).
+- Rating & Highlights: 4.1★ average rating across hundreds of local client reviews praising spotless hygienic private rooms, trained and attentive therapists, relaxing ambient lighting, and integrated steam & shower facilities.
+- Guest Concerns We Solve: Chronic neck/back stiffness from long desk hours & Delhi commutes, mental burnout and poor sleep quality, noisy rushed parlors lacking real privacy or hygiene, and uncertainty over which body therapy fits your soreness or stress level.
+- What You'll Experience: Deep Muscular Relief, Serene Mental Reset, Private Hygienic Suites (sanitized linens, ambient lighting & quiet rooms), Steam & Shower Rituals, Tailored Therapist Pressure, and Effortless Renewed Glow.
+- Signature Services Menu (Pricing: On Consultation / Personalized Packages):
+  1. Swedish & Aromatherapy Massage (60 / 90 Min • On Consultation): Long rhythmic strokes paired with warm essential oils to ease daily stress and restore calm sleep.
+  2. Deep Tissue & Thai Massage (60 / 90 Min • On Consultation): Targeted slow-pressure myofascial release and traditional Thai stretching to unlock tight back, neck, and shoulder knots.
+  3. Head, Shoulder & Reflexology (30 / 45 Min • On Consultation): Focused scalp, temple, cervical, and foot reflex-point therapy ideal for express post-work recharge.
+  4. Couple Spa & Steam Rituals (90 / 120 Min • On Consultation): Private luxury treatment suites featuring aromatic steam, synchronized full-body massage, and warm shower facilities.
+  5. Body Scrub, Wrap & Skin Care (60 / 90 Min • On Consultation): Exfoliating polishes, hydrating wraps, and soothing facial refreshers for smoother, luminous skin.
+- Featured Offer: Complimentary Wellness Consultation — sit down with our lead therapist for a personalized posture, tension, and aroma assessment to choose your ideal therapy and pressure profile before booking.
+- Your Path to Calm (3 Simple Steps): 01. Book Your Slot (online booking form on this website or WhatsApp; concierge calls within 15 minutes to confirm) -> 02. Arrive & Consult (House No. 372, 2nd Floor, near Kohat Enclave Metro) -> 03. Unwind & Recharge.
+- Booking Form Services Available (#booking): Free Wellness Consultation, Swedish & Aromatherapy Massage, Deep Tissue & Thai Massage, Head, Shoulder & Reflexology, Couple Spa & Steam Rituals, Body Scrub, Wrap & Skin Care.
+- AI Wellness Consultant (#consultant): Visitors can also upload a photo in the AI Consultant section on this page for instant tension/skin observation and therapy matching.
 
 RESPONSE GUIDELINES:
-1. Answer questions accurately using the Floraison website knowledge above in a warm, polished, luxury salon concierge voice.
-2. When asked about directions, landmarks near Sankar Chowmuhani / T.G. Road / Ram Nagar, or nearby places, use Google Maps grounding to provide accurate geographic details.
-3. Recommend the most suitable Floraison service(s) and pricing whenever relevant.
-4. Keep answers clear and concise (short paragraphs or bullet points), and always end by inviting the user to click the "Book in Form" CTA button directly below your message to reserve their appointment slot.
-5. Never invent prices, offers, or services that are not listed on the website above.`;
+1. Answer questions accurately using the Crown Spa website knowledge above in a warm, calm, luxury spa concierge voice.
+2. When asked about directions, landmarks near Kohat Enclave Metro Station / Metro Pillar 342 & 343 / Pitampura, or nearby routes, use Google Maps grounding to provide accurate geographic details.
+3. Recommend the most suitable Crown Spa therapy/therapies whenever relevant. Mention clearly that package rates are shared on consultation or by calling +91 87929 02454 / +91 93542 47716.
+4. Keep answers clear and concise (short paragraphs or bullet points), and always end by inviting the user to click the "Book in Form" CTA button directly below your message to reserve their private suite slot.
+5. Never invent fixed rupee prices, fake discounts, or services that are not listed on the website above.`;
 
 function getGeminiClient(): GoogleGenAI {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -75,20 +76,20 @@ function getGeminiClient(): GoogleGenAI {
 
 function matchServiceKeywords(text: string): string | null {
   const lower = text.toLowerCase();
-  if (/keratin|hair spa|frizz|dryness|dry hair|smoothing|scalp|damage|hair fall/.test(lower)) {
-    return 'Keratin & Hair Spa';
+  if (/deep tissue|thai|stiff|knot|back pain|muscle|sore|sport|posture/.test(lower)) {
+    return 'Deep Tissue & Thai Massage';
   }
-  if (/balayage|inoa|dia color|dia light|hair colou?r|global colou?r|highlights|grey coverage|dye/.test(lower)) {
-    return 'Global Hair Colour / French Balayage (₹700–₹2,000)';
+  if (/swedish|aroma|aromatherapy|stress|sleep|relax|essential oil|calm/.test(lower)) {
+    return 'Swedish & Aromatherapy Massage';
   }
-  if (/haircut|hair cut|trim|prince|princess|kids cut|blowout|bangs|layers/.test(lower)) {
-    return 'Haircut & Styling (₹200–₹300)';
+  if (/head|scalp|shoulder|neck|foot|feet|reflexology|migraine|express/.test(lower)) {
+    return 'Head, Shoulder & Reflexology';
   }
-  if (/facial|skin|glow|acne|peel|cleanup|tan/.test(lower)) {
-    return 'Skin & Facial Treatment';
+  if (/couple|steam|shower|suite|jacuzzi|anniversary|private room|ritual/.test(lower)) {
+    return 'Couple Spa & Steam Rituals';
   }
-  if (/bridal|wedding|bride|occasion|party makeup|makeover/.test(lower)) {
-    return 'Bridal & Occasion Makeover';
+  if (/scrub|wrap|polish|exfoliat|facial|skin|glow|tan|dehydrat/.test(lower)) {
+    return 'Body Scrub, Wrap & Skin Care';
   }
   return null;
 }
@@ -97,11 +98,16 @@ function inferRecommendedService(userMessage: string, reply: string): string {
   const fromUser = matchServiceKeywords(userMessage);
   if (fromUser) return fromUser;
 
-  if (/what services|all services|menu|price list|prices|where|location|address|directions|hours|open|review|rating|offer/i.test(userMessage)) {
-    return 'Free Consultation';
+  if (
+    /^(hi+|hello+|hey+|good\s*(morning|afternoon|evening)|namaste|help|info)\b/i.test(userMessage.trim()) ||
+    /what services|all services|menu|price list|prices|rate|cost|where|location|address|directions|hours|open|review|rating|metro|offer/i.test(
+      userMessage
+    )
+  ) {
+    return 'Free Wellness Consultation';
   }
 
-  return matchServiceKeywords(reply) || 'Free Consultation';
+  return matchServiceKeywords(reply) || 'Free Wellness Consultation';
 }
 
 interface IncomingChatTurn {
@@ -145,7 +151,7 @@ function createApiRouter() {
   router.get('/health', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
-      service: 'floraison-api',
+      service: 'crown-spa-api',
       geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
       timestamp: new Date().toISOString(),
     });
@@ -178,14 +184,15 @@ function createApiRouter() {
     const cleanService =
       typeof service === 'string' && service.trim()
         ? service.trim().slice(0, 120)
-        : 'Free Consultation';
+        : 'Free Wellness Consultation';
 
-    const bookingId = `FLR-${Date.now().toString(36).toUpperCase()}`;
+    const bookingId = `CRN-${Date.now().toString(36).toUpperCase()}`;
 
     res.status(201).json({
       success: true,
       bookingId,
-      message: 'Consultation Secured! Our concierge will contact you within 15 minutes to confirm your preferred session time.',
+      message:
+        'Session Request Secured! Our concierge will call you within 15 minutes to confirm your private suite and therapist.',
       booking: {
         name: name.trim().slice(0, 100),
         phone: phone.trim().slice(0, 30),
@@ -201,7 +208,7 @@ function createApiRouter() {
       const { message, history, location } = req.body ?? {};
 
       if (!message || typeof message !== 'string' || !message.trim()) {
-        res.status(400).json({ error: 'Please enter a message to chat with the Floraison AI Concierge.' });
+        res.status(400).json({ error: 'Please enter a message to chat with the Crown Spa AI Concierge.' });
         return;
       }
 
@@ -234,14 +241,44 @@ function createApiRouter() {
       const lat =
         location && typeof location.latitude === 'number' && Number.isFinite(location.latitude)
           ? location.latitude
-          : 23.844058990478516;
+          : 28.698;
       const lng =
         location && typeof location.longitude === 'number' && Number.isFinite(location.longitude)
           ? location.longitude
-          : 91.27068328857422;
+          : 77.1404;
 
-      const generateChatResponse = (model: string, useMaps: boolean) =>
-        ai.models.generateContent({
+      const wantsLocationGrounding =
+        /where|location|address|directions|map|nearby|landmark|kohat|pitampura|pillar|metro|delhi|far|distance|reach|parking|google|hours|open/i.test(
+          message
+        );
+
+      const isKeyError = (err: unknown): boolean => {
+        const msg = err instanceof Error ? err.message : String(err);
+        return (
+          msg === 'MISSING_API_KEY' ||
+          msg.includes('PERMISSION_DENIED') ||
+          msg.includes('API_KEY_INVALID') ||
+          msg.includes('403')
+        );
+      };
+
+      const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+        new Promise<T>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('GEMINI_CHAT_TIMEOUT')), ms);
+          promise.then(
+            (val) => {
+              clearTimeout(timer);
+              resolve(val);
+            },
+            (err) => {
+              clearTimeout(timer);
+              reject(err);
+            }
+          );
+        });
+
+      const generateChatResponse = (model: string, useMaps: boolean, timeoutMs?: number) => {
+        const call = ai.models.generateContent({
           model,
           contents,
           config: {
@@ -264,26 +301,19 @@ function createApiRouter() {
               : {}),
           },
         });
+        return timeoutMs ? withTimeout(call, timeoutMs) : call;
+      };
 
       let response;
-      try {
-        response = await generateChatResponse('gemini-4-hydrogen', true);
-      } catch (primaryErr: unknown) {
-        const primaryMsg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
-        if (primaryMsg.includes('RESOURCE_EXHAUSTED') || primaryMsg.includes('429')) {
-          try {
-            response = await generateChatResponse('gemini-4-hydrogen', false);
-          } catch (secondaryErr: unknown) {
-            const secondaryMsg = secondaryErr instanceof Error ? secondaryErr.message : String(secondaryErr);
-            if (secondaryMsg.includes('RESOURCE_EXHAUSTED') || secondaryMsg.includes('429')) {
-              response = await generateChatResponse('gemini-3.1-flash-lite', false);
-            } else {
-              throw secondaryErr;
-            }
-          }
-        } else {
-          throw primaryErr;
+      if (wantsLocationGrounding) {
+        try {
+          response = await generateChatResponse('gemini-4-hydrogen', true, 4000);
+        } catch (err) {
+          if (isKeyError(err)) throw err;
+          response = await generateChatResponse('gemini-3.1-flash-lite', false);
         }
+      } else {
+        response = await generateChatResponse('gemini-3.1-flash-lite', false);
       }
 
       const reply = (response.text ?? '').trim();
@@ -330,7 +360,7 @@ function createApiRouter() {
         recommendedServiceOption,
       });
     } catch (err: unknown) {
-      handleGeminiRouteError(err, res, 'Unable to reach the Floraison AI Concierge right now. Please try again.');
+      handleGeminiRouteError(err, res, 'Unable to reach the Crown Spa AI Concierge right now. Please try again.');
     }
   });
 
@@ -339,7 +369,7 @@ function createApiRouter() {
       const { imageBase64, mimeType, focusArea, concern } = req.body ?? {};
 
       if (!imageBase64 || typeof imageBase64 !== 'string') {
-        res.status(400).json({ error: 'Please upload a photo before starting the consultation.' });
+        res.status(400).json({ error: 'Please upload a photo before starting the wellness consultation.' });
         return;
       }
 
@@ -354,11 +384,12 @@ function createApiRouter() {
 
       const ai = getGeminiClient();
 
-      const focusText = typeof focusArea === 'string' && focusArea.trim() ? focusArea.trim() : 'Complete Look (Hair & Skin)';
+      const focusText =
+        typeof focusArea === 'string' && focusArea.trim() ? focusArea.trim() : 'Complete Relaxation';
       const concernText =
         typeof concern === 'string' && concern.trim()
-          ? `Client note: "${concern.trim().slice(0, 500)}"`
-          : 'No additional note provided by the client.';
+          ? `Guest note: "${concern.trim().slice(0, 500)}"`
+          : 'No additional note provided by the guest.';
 
       const response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-lite',
@@ -371,7 +402,7 @@ function createApiRouter() {
               },
             },
             {
-              text: `Analyze this client photo for a salon consultation at FLORAISON (Agartala). Focus area selected: ${focusText}. ${concernText} Identify the visible hair/skin problem or styling opportunity and recommend the best matching FLORAISON service.`,
+              text: `Analyze this guest photo for a luxury wellness spa consultation at CROWN SPA (Kohat Enclave, Pitampura, New Delhi). Focus area selected: ${focusText}. ${concernText} Identify visible tension, fatigue, posture strain, or skin care needs and recommend the best matching CROWN SPA therapy.`,
             },
           ],
         },
@@ -384,15 +415,15 @@ function createApiRouter() {
             properties: {
               isClearSalonPhoto: {
                 type: Type.BOOLEAN,
-                description: 'True if the photo clearly shows a person, hair, or face suitable for salon consultation.',
+                description: 'True if the photo clearly shows a person, face, posture, or skin suitable for spa wellness consultation.',
               },
               detectedProblemTitle: {
                 type: Type.STRING,
-                description: 'Short 3-6 word title of the main observed concern or styling opportunity.',
+                description: 'Short 3-6 word title of the main observed tension, fatigue, or skin wellness opportunity.',
               },
               problemObservation: {
                 type: Type.STRING,
-                description: '1-2 respectful, observant sentences describing what is visible in the photo and the styling/care problem identified.',
+                description: '1-2 respectful, observant sentences describing what is visible and the relaxation or skin care need identified.',
               },
               recommendedServiceOption: {
                 type: Type.STRING,
@@ -400,20 +431,20 @@ function createApiRouter() {
               },
               recommendedServiceName: {
                 type: Type.STRING,
-                description: 'Friendly Floraison service name (e.g., L’Oréal French Balayage & Toning, Keratin & Hair Spa Ritual).',
+                description: 'Friendly Crown Spa therapy name (e.g., Signature Swedish & Aromatherapy Ritual, Deep Tissue Muscular Release).',
               },
               estimatedPrice: {
                 type: Type.STRING,
-                description: 'Floraison price range such as ₹200 – ₹300, ₹700 – ₹2,000, or On Consultation.',
+                description: 'Crown Spa pricing label: either "On Consultation" or "Complimentary Assessment".',
               },
               whyItSolvesIt: {
                 type: Type.STRING,
-                description: '1-2 sentences explaining specifically how this Floraison service solves the problem and what result to expect.',
+                description: '1-2 sentences explaining specifically how this Crown Spa therapy restores comfort and what result to expect.',
               },
               stylistTips: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: 'Exactly 3 concise, practical aftercare or styling tips tailored to this client.',
+                description: 'Exactly 3 concise, practical hydration, posture, or aftercare tips tailored to this guest.',
               },
             },
             required: [
@@ -448,7 +479,7 @@ function createApiRouter() {
         typeof parsed.recommendedServiceOption === 'string' ? parsed.recommendedServiceOption : '';
       const validOption = (ALLOWED_SERVICE_OPTIONS as readonly string[]).includes(candidateOption)
         ? candidateOption
-        : 'Free Consultation';
+        : 'Free Wellness Consultation';
 
       res.json({
         ...parsed,

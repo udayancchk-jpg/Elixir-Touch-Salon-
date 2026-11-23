@@ -8,7 +8,7 @@ import {
   Check,
   RefreshCw,
   AlertCircle,
-  Scissors,
+  Flower2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -28,8 +28,8 @@ interface AIConsultantSectionProps {
 }
 
 const FOCUS_OPTIONS = [
-  'Complete Look',
-  'Hair & Colour',
+  'Complete Relaxation',
+  'Stress & Posture',
   'Skin & Glow',
 ] as const;
 
@@ -80,7 +80,7 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imagePayload, setImagePayload] = useState<{ base64: string; mimeType: string } | null>(null);
-  const [focusArea, setFocusArea] = useState<string>('Complete Look');
+  const [focusArea, setFocusArea] = useState<string>('Complete Relaxation');
   const [concern, setConcern] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -108,7 +108,7 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!imagePayload) {
-      setError('Please upload a photo first so our AI consultant can analyze your look.');
+      setError('Please upload a photo first so our AI consultant can analyze your wellness needs.');
       return;
     }
 
@@ -184,14 +184,14 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full border border-luxury-gold/40 bg-luxury-gold/10 mb-6">
             <Sparkles className="w-3 h-3 text-luxury-gold" />
             <span className="text-[10px] uppercase tracking-[2px] font-bold text-luxury-gold">
-              AI Photo Style &amp; Care Consultant
+              AI Photo Wellness &amp; Therapy Consultant
             </span>
           </div>
           <h2 className="text-4xl md:text-6xl font-serif font-bold text-luxury-white mb-6">
             Upload Your Photo. <span className="text-luxury-gold italic">Get Instant Advice.</span>
           </h2>
           <p className="text-luxury-champagne text-base md:text-lg font-light leading-relaxed">
-            Share a well-lit photo of your hair or skin. Our AI consultant identifies what your look needs and matches you with the ideal Floraison service.
+            Share a well-lit selfie or posture photo. Our AI consultant spots signs of stress, shoulder tightness, or skin fatigue and matches you with the ideal Crown Spa ritual.
           </p>
         </div>
 
@@ -273,7 +273,7 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
                     Click to upload or drag a photo
                   </p>
                   <p className="text-xs text-luxury-champagne/70">
-                    Clear selfie or hair photo • JPG, PNG, or WebP
+                    Clear selfie, neck/shoulder or skin photo • JPG, PNG, or WebP
                   </p>
                 </div>
               )}
@@ -308,7 +308,7 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
               </label>
               <textarea
                 rows={3}
-                placeholder="e.g., frizzy ends, want a face-framing cut, dull skin before an event, grey coverage..."
+                placeholder="e.g., stiff neck after desk work, poor sleep, dull skin needing a steam & polish..."
                 className="w-full bg-luxury-ivory/[0.06] border border-luxury-champagne/20 rounded-xl px-4 py-3 text-sm text-luxury-white placeholder:text-luxury-champagne/45 focus:border-luxury-gold outline-none transition-all resize-none"
                 value={concern}
                 onChange={(e) => setConcern(e.target.value)}
@@ -329,7 +329,7 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
             >
               {isAnalyzing ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Analyzing Your Look...
+                  <RefreshCw className="w-4 h-4 animate-spin" /> Analyzing Your Wellness...
                 </>
               ) : (
                 <>
@@ -347,10 +347,10 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
                   <Sparkles className="w-8 h-8 text-luxury-gold animate-pulse" />
                 </div>
                 <h3 className="text-2xl font-serif text-luxury-ivory">
-                  Reviewing Your Hair, Tone &amp; Features...
+                  Reviewing Tension, Posture &amp; Skin Tone...
                 </h3>
                 <p className="text-sm text-luxury-champagne max-w-md mx-auto leading-relaxed">
-                  Matching what we see against Floraison&apos;s L&apos;Oréal Professionnel colour, treatment, skin, and styling menu.
+                  Matching what we see against Crown Spa&apos;s Swedish, Deep Tissue, Thai, reflexology, and steam therapy menu.
                 </p>
               </div>
             ) : result ? (
@@ -359,10 +359,10 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
                 animate={{ opacity: 1, y: 0 }}
                 className="rounded-2xl p-8 md:p-10 bg-luxury-ivory text-luxury-black border border-luxury-champagne shadow-2xl space-y-8"
               >
-                {/* Problem Diagnosis */}
+                {/* Observation Summary */}
                 <div className="border-b border-luxury-champagne pb-6">
                   <span className="inline-block bg-luxury-black text-luxury-gold px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-3">
-                    {result.isClearSalonPhoto ? 'Consultant Assessment' : 'Photo Clarity Note'}
+                    {result.isClearSalonPhoto ? 'Wellness Assessment' : 'Photo Clarity Note'}
                   </span>
                   <h3 className="text-2xl md:text-3xl font-serif font-bold text-luxury-black mb-3">
                     {result.detectedProblemTitle}
@@ -372,12 +372,12 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
                   </p>
                 </div>
 
-                {/* Recommended Floraison Service */}
+                {/* Recommended Crown Spa Ritual */}
                 <div className="rounded-2xl p-6 bg-luxury-black text-luxury-white border border-luxury-gold/30 space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.2em] text-luxury-gold font-bold mb-1">
-                        Recommended Floraison Solution
+                        Recommended Crown Spa Ritual
                       </p>
                       <h4 className="text-2xl font-serif font-bold text-luxury-ivory">
                         {result.recommendedServiceName}
@@ -392,11 +392,11 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
                   </p>
                 </div>
 
-                {/* Stylist Care Tips */}
+                {/* Therapist Care Tips */}
                 {result.stylistTips && result.stylistTips.length > 0 && (
                   <div>
                     <p className="text-[10px] uppercase tracking-widest font-bold text-luxury-black/65 mb-4">
-                      Stylist Care Notes For You
+                      Therapist Wellness Notes For You
                     </p>
                     <div className="space-y-3">
                       {result.stylistTips.map((tip, idx) => (
@@ -438,14 +438,14 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
               <div className="glass-card border-luxury-champagne/20 p-8 md:p-12 space-y-8">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-luxury-gold/15 border border-luxury-gold/30 flex items-center justify-center shrink-0">
-                    <Scissors className="w-6 h-6 text-luxury-gold" />
+                    <Flower2 className="w-6 h-6 text-luxury-gold" />
                   </div>
                   <div>
                     <h3 className="text-2xl font-serif font-bold text-luxury-ivory mb-2">
                       What Our AI Consultant Checks
                     </h3>
                     <p className="text-sm text-luxury-champagne leading-relaxed">
-                      Upload a photo on the left to receive a personalized breakdown of what we notice and which Floraison service will solve it best.
+                      Upload a photo on the left to receive a personalized breakdown of what we notice and which Crown Spa massage or ritual suits you best.
                     </p>
                   </div>
                 </div>
@@ -453,20 +453,20 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
                 <div className="grid sm:grid-cols-2 gap-4">
                   {[
                     {
-                      title: 'Hair Texture & Damage',
-                      desc: 'Spotting frizz, dryness, or split ends suited for Keratin & Hair Spa.',
+                      title: 'Posture & Muscle Tension',
+                      desc: 'Spotting upper-shoulder or neck strain suited for Deep Tissue & Thai Massage.',
                     },
                     {
-                      title: 'Face Shape & Cut',
-                      desc: 'Recommending precision cuts & layers (₹200–₹300) for natural balance.',
+                      title: 'Stress & Burnout Cues',
+                      desc: 'Matching visual fatigue with soothing Swedish & Aromatherapy oil rituals.',
                     },
                     {
-                      title: 'Colour & Tone Harmony',
-                      desc: 'Matching L’Oréal INOA, French Balayage & Dia Color shades (₹700–₹2,000).',
+                      title: 'Skin Dehydration & Glow',
+                      desc: 'Identifying dull or dry skin ready for Body Scrub, Wrap & Steam sessions.',
                     },
                     {
-                      title: 'Skin Glow & Prep',
-                      desc: 'Identifying dullness or event-prep needs for targeted facials & makeovers.',
+                      title: 'Express Head & Foot Care',
+                      desc: 'Recommending focused reflexology and scalp therapy for busy workday recovery.',
                     },
                   ].map((item, i) => (
                     <div
@@ -480,7 +480,7 @@ export default function AIConsultantSection({ onBookRecommendation }: AIConsulta
                 </div>
 
                 <p className="text-[11px] text-luxury-champagne/65 italic">
-                  Your photo is analyzed solely for your live consultation and is not stored on our servers. Final treatment advice is confirmed in-person by our Agartala stylists.
+                  Your photo is analyzed solely for your live consultation and is not stored on our servers. Final pressure level and aroma blend are tailored in-person at our Pitampura sanctuary.
                 </p>
               </div>
             )}

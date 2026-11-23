@@ -27,7 +27,7 @@ async function startServer() {
   }
 
   app.listen(port, '0.0.0.0', () => {
-    console.log(`Floraison server listening on http://0.0.0.0:${port}`);
+    console.log(`Crown Spa server listening on http://0.0.0.0:${port}`);
   });
 }
 

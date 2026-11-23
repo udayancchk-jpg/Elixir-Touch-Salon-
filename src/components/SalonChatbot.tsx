@@ -35,16 +35,16 @@ interface SalonChatbotProps {
 }
 
 const STARTER_QUESTIONS = [
-  'What services & prices do you offer?',
-  'Where is Floraison located & opening hours?',
-  'Best treatment for frizzy, dry hair?',
+  'What massage & spa therapies do you offer?',
+  'Where is Crown Spa located & opening hours?',
+  'Best therapy for stiff neck & deep muscle stress?',
 ];
 
 const INITIAL_MESSAGE: ChatMessage = {
   id: 'welcome',
   role: 'model',
-  text: "Welcome to **FLORAISON** (T.G. Road, Ram Nagar, Agartala). Ask me anything about our haircuts, L'Oréal colour & French Balayage, Keratin & Hair Spa, skin treatments, pricing, hours, or directions via Google Maps.",
-  recommendedServiceOption: 'Free Consultation',
+  text: 'Welcome to **CROWN SPA** (Kohat Enclave, Pitampura, New Delhi). Ask me anything about our Swedish, Deep Tissue, Thai & Aromatherapy massages, steam rooms, private suites, opening hours, or Metro directions via Google Maps.',
+  recommendedServiceOption: 'Free Wellness Consultation',
   showBookingCta: true,
 };
 
@@ -207,7 +207,7 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
 
       if (!response.ok) {
         throw new Error(
-          data?.error || `Unable to reach Floraison AI Concierge (HTTP ${response.status}). Please try again.`
+          data?.error || `Unable to reach Crown Spa AI Concierge (HTTP ${response.status}). Please try again.`
         );
       }
 
@@ -223,7 +223,7 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
         recommendedServiceOption:
           typeof data.recommendedServiceOption === 'string' && data.recommendedServiceOption.trim()
             ? data.recommendedServiceOption
-            : 'Free Consultation',
+            : 'Free Wellness Consultation',
         showBookingCta: true,
       };
 
@@ -232,7 +232,7 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
       if (err instanceof DOMException && err.name === 'AbortError') {
         setError('Response timed out. Please try asking again.');
       } else {
-        setError(err instanceof Error ? err.message : 'Unable to reach Floraison AI Concierge.');
+        setError(err instanceof Error ? err.message : 'Unable to reach Crown Spa AI Concierge.');
       }
     } finally {
       window.clearTimeout(timeoutId);
@@ -263,10 +263,10 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
           type="button"
           onClick={() => onToggle(true)}
           className="fixed bottom-24 md:bottom-10 left-4 md:left-10 z-50 px-5 py-3.5 rounded-full bg-luxury-gold text-luxury-black border border-[#202127]/20 shadow-2xl hover:bg-[#F9DF6F] hover:scale-[1.03] active:scale-[0.98] transition-all flex items-center gap-2.5 font-bold text-xs uppercase tracking-widest group"
-          aria-label="Open Floraison AI Concierge Chat"
+          aria-label="Open Crown Spa AI Concierge Chat"
         >
           <MessageSquare className="w-4 h-4" />
-          <span>Ask Floraison AI</span>
+          <span>Ask Crown Spa AI</span>
           <Sparkles className="w-3.5 h-3.5" />
         </button>
       )}
@@ -289,10 +289,10 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
                 </div>
                 <div className="min-w-0">
                   <p className="font-serif font-bold text-sm text-luxury-ivory truncate">
-                    FLORAISON AI Concierge
+                    CROWN SPA AI Concierge
                   </p>
                   <p className="text-[10px] uppercase tracking-widest text-luxury-champagne/75 truncate">
-                    Salon Guide &amp; Google Maps
+                    Spa Guide &amp; Google Maps
                   </p>
                 </div>
               </div>
@@ -395,14 +395,17 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
                   {msg.role === 'model' && msg.showBookingCta && (
                     <button
                       type="button"
-                      onClick={() => handleCtaClick(msg.recommendedServiceOption || 'Free Consultation')}
+                      onClick={() =>
+                        handleCtaClick(msg.recommendedServiceOption || 'Free Wellness Consultation')
+                      }
                       className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-luxury-gold text-luxury-black hover:bg-[#F9DF6F] transition-colors text-[11px] font-bold uppercase tracking-wider shadow-md"
                     >
                       <span>
                         Book{' '}
-                        {msg.recommendedServiceOption && msg.recommendedServiceOption !== 'Free Consultation'
-                          ? msg.recommendedServiceOption.split(' (')[0]
-                          : 'Free Consultation'}{' '}
+                        {msg.recommendedServiceOption &&
+                        msg.recommendedServiceOption !== 'Free Wellness Consultation'
+                          ? msg.recommendedServiceOption
+                          : 'Free Wellness Consultation'}{' '}
                         in Form
                       </span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -436,7 +439,7 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
                 <div className="flex items-start">
                   <div className="rounded-2xl rounded-bl-sm px-4 py-3 bg-luxury-ivory/[0.06] border border-luxury-champagne/20 text-xs text-luxury-champagne flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-luxury-gold animate-pulse" />
-                    <span>Checking Floraison menu &amp; Google Maps...</span>
+                    <span>Checking Crown Spa menu &amp; Google Maps...</span>
                   </div>
                 </div>
               )}
@@ -457,7 +460,7 @@ export default function SalonChatbot({ isOpen, onToggle, onBookFromChat }: Salon
             >
               <input
                 type="text"
-                placeholder="Ask about services, prices, directions..."
+                placeholder="Ask about massages, suites, directions..."
                 className="flex-1 bg-luxury-ivory/[0.06] border border-luxury-champagne/20 rounded-full px-4 py-2.5 text-xs sm:text-sm text-luxury-white placeholder:text-luxury-champagne/45 focus:border-luxury-gold outline-none"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
